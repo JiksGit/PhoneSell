@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-configmap
+  namespace: sungji-phone
+  labels:
+    app: sungji-phone
+    component: backend
+data:
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/sungji_phone?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8"
+  FIREBASE_SERVICE_ACCOUNT_PATH: "/app/firebase-service-account.json"
+  PROMETHEUS_ALLOWED_IP: "0.0.0.0/0"

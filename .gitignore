@@ -1,0 +1,48 @@
+# 민감한 인증 정보
+firebase-service-account.json
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+
+# 의존성
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 빌드 결과물
+dist/
+build/
+*.class
+*.jar
+target/
+
+# IDE / 에디터
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
+logs/
+
+# kubectl 바이너리 (OS 종속)
+kubectl.exe
+kubectl.exe.sha256
+
+# Gradle 캐시
+.gradle/
+
+# 임시 스크립트
+push_readme.sh
+push_to_github.sh
+test.txt

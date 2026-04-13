@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-configmap
+  namespace: sungji-phone
+  labels:
+    app: sungji-phone
+    component: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        monitor: 'sungji-phone-monitor'
+
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      - job_name: 'sungji-phone-app'
+        metrics_path: '/actuator/prometheus'
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ['sungji-backend:8080']
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: instance
+            regex: '([^:]+)(?::\d+)?'
+            replacement: '${1}'

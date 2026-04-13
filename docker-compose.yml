@@ -1,0 +1,99 @@
+# version 속성 제거 (obsolete 경고 해결)
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sungji-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: sungji_phone
+      MYSQL_USER: ${MYSQL_USER:-sungji}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-sungjipassword}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"   # 로컬 MySQL과 포트 충돌 방지 (DBeaver: localhost:3307)
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sungji-network
+
+  spring-boot-app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.multistage
+    container_name: sungji-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/sungji_phone?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-sungji}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-sungjipassword}
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-/app/firebase-service-account.json}
+      PROMETHEUS_ALLOWED_IP: ${PROMETHEUS_ALLOWED_IP:-172.16.0.0/12}
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ${FIREBASE_SERVICE_ACCOUNT_PATH:-./firebase-service-account.json}:/app/firebase-service-account.json:ro
+    networks:
+      - sungji-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sungji-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+    depends_on:
+      - spring-boot-app
+    networks:
+      - sungji-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sungji-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SECURITY_ALLOW_EMBEDDING: 'true'        # iframe 임베딩 허용
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'          # 로그인 없이 대시보드 조회
+      GF_AUTH_ANONYMOUS_ORG_ROLE: 'Viewer'
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: '/etc/grafana/provisioning/dashboards/sungji-phone.json'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - sungji-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  sungji-network:
+    driver: bridge

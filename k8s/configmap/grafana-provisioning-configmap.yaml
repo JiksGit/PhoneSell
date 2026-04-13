@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning-configmap
+  namespace: sungji-phone
+  labels:
+    app: sungji-phone
+    component: grafana
+data:
+  # datasources/prometheus.yml
+  datasources.yml: |
+    apiVersion: 1
+
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: false
+        jsonData:
+          httpMethod: POST
+          timeInterval: 15s
+
+  # dashboards/dashboard.yml
+  dashboards.yml: |
+    apiVersion: 1
+
+    providers:
+      - name: 'sungji-phone-dashboards'
+        orgId: 1
+        folder: 'Sungji Phone'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards

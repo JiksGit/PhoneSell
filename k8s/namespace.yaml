@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sungji-phone
+  labels:
+    app: sungji-phone
+    component: namespace
